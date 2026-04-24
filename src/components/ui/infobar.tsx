@@ -113,6 +113,12 @@ function InfobarProvider({
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
   }, [isMobile, setOpen, setOpenMobile]);
 
+  // Close infobar when switching between mobile and desktop to prevent state desync
+  React.useEffect(() => {
+    setOpenMobile(false);
+    _setOpen(false);
+  }, [isMobile]);
+
   // Adds a keyboard shortcut to toggle the infobar.
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -196,10 +202,7 @@ function InfobarProvider({
               ...style
             } as React.CSSProperties
           }
-          className={cn(
-            'group/infobar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full',
-            className
-          )}
+          className={cn('group/infobar-wrapper flex flex-1 w-full', className)}
           {...props}
         >
           {children}
@@ -221,7 +224,7 @@ function Infobar({
   variant?: 'sidebar' | 'floating' | 'inset';
   collapsible?: 'offcanvas' | 'icon' | 'none';
 }) {
-  const { isMobile, state, openMobile, setOpenMobile, isPathnameChanging } = useInfobar();
+  const { isMobile, state, setOpen, openMobile, setOpenMobile, isPathnameChanging } = useInfobar();
 
   if (collapsible === 'none') {
     return (
@@ -240,7 +243,14 @@ function Infobar({
 
   if (isMobile) {
     return (
-      <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+      <Sheet
+        open={openMobile}
+        onOpenChange={(value) => {
+          setOpenMobile(value);
+          setOpen(value);
+        }}
+        {...props}
+      >
         <SheetContent
           data-infobar='infobar'
           data-slot='infobar'
@@ -273,33 +283,15 @@ function Infobar({
       data-slot='infobar'
       style={
         {
-          '--infobar-transition-duration': isPathnameChanging ? '0ms' : '200ms'
+          '--infobar-transition-duration': isPathnameChanging ? '0ms' : '300ms'
         } as React.CSSProperties
       }
     >
-      {/* This is what handles the infobar gap on desktop */}
-      <div
-        data-slot='infobar-gap'
-        className={cn(
-          'relative w-(--infobar-width) bg-transparent transition-[width] duration-(--infobar-transition-duration,200ms) ease-linear',
-          'group-data-[collapsible=offcanvas]:w-0',
-          'group-data-[side=right]:rotate-180',
-          variant === 'floating' || variant === 'inset'
-            ? 'group-data-[collapsible=icon]:w-[calc(var(--infobar-width-icon)+(--spacing(4)))]'
-            : 'group-data-[collapsible=icon]:w-(--infobar-width-icon)'
-        )}
-      />
       <div
         data-slot='infobar-container'
         className={cn(
-          'fixed inset-y-0 z-30 hidden h-dvh w-(--infobar-width) transition-[left,right,width] duration-(--infobar-transition-duration,200ms) ease-linear md:flex',
-          side === 'left'
-            ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--infobar-width)*-1)]'
-            : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--infobar-width)*-1)]',
-          // Adjust the padding for floating and inset variants.
-          variant === 'floating' || variant === 'inset'
-            ? 'p-2 group-data-[collapsible=icon]:w-[calc(var(--infobar-width-icon)+(--spacing(4))+2px)]'
-            : 'group-data-[collapsible=icon]:w-(--infobar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l',
+          'sticky top-0 z-30 hidden h-[calc(100dvh-3.5rem)] w-(--infobar-width) shrink-0 overflow-hidden rounded-tl-xl border-l border-t transition-[width,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] md:flex',
+          'group-data-[collapsible=offcanvas]:w-0 group-data-[collapsible=offcanvas]:overflow-hidden group-data-[collapsible=offcanvas]:border-0 group-data-[collapsible=offcanvas]:opacity-0',
           className
         )}
         {...props}
@@ -307,7 +299,7 @@ function Infobar({
         <div
           data-infobar='infobar'
           data-slot='infobar-inner'
-          className='bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm'
+          className='bg-sidebar text-sidebar-foreground flex h-full w-full flex-col overflow-y-auto'
         >
           {children}
         </div>
@@ -326,15 +318,14 @@ function InfobarTrigger({ className, onClick, ...props }: React.ComponentProps<t
       variant='ghost'
       size='icon'
       className={cn('size-7', className)}
-      aria-label='Toggle info infobar'
+      aria-label='Close info panel'
       onClick={(event) => {
         onClick?.(event);
         toggleInfobar();
       }}
       {...props}
     >
-      <Icons.circleX className='size-7' />
-      <span className='sr-only'>Toggle Infobar</span>
+      <Icons.chevronsRight className='size-4' />
     </Button>
   );
 }

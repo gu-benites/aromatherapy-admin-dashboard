@@ -23,16 +23,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <KBar>
       <SidebarProvider defaultOpen={defaultOpen}>
-        <InfobarProvider defaultOpen={false}>
-          <AppSidebar />
-          <SidebarInset>
-            <Header />
-            {/* page main content */}
+        <AppSidebar />
+        <SidebarInset>
+          <Header />
+          <InfobarProvider defaultOpen={false}>
             {children}
-            {/* page main content ends */}
-          </SidebarInset>
-          <InfoSidebar side='right' />
-        </InfobarProvider>
+            <InfoSidebar side='right' />
+          </InfobarProvider>
+        </SidebarInset>
       </SidebarProvider>
     </KBar>
   );

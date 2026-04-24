@@ -811,7 +811,7 @@ export default function DemoForm() {
       </Card>
 
       {/* Form Data Preview - sticky sidebar */}
-      <div className='xl:sticky xl:top-4 xl:self-start'>
+      <div className='xl:sticky xl:top-16 xl:self-start'>
         <Card>
           <CardHeader>
             <CardTitle>Form Data Preview</CardTitle>

@@ -24,7 +24,6 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Icons } from '@/components/icons';
 
 // ---------------------------------------------------------------------------
@@ -105,57 +104,55 @@ function SheetFormSection() {
               </SheetDescription>
             </SheetHeader>
 
-            <ScrollArea className='flex-1'>
-              <form.AppForm>
-                <form.Form id='sheet-form-id' className='space-y-4 p-0 md:p-0'>
-                  <FormTextField
-                    name='name'
-                    label='Product Name'
-                    required
-                    placeholder='Enter product name'
-                    validators={{
-                      onBlur: z.string().min(2, 'Product name must be at least 2 characters')
-                    }}
-                  />
+            <form.AppForm>
+              <form.Form id='sheet-form-id' className='space-y-4 p-0 md:p-0'>
+                <FormTextField
+                  name='name'
+                  label='Product Name'
+                  required
+                  placeholder='Enter product name'
+                  validators={{
+                    onBlur: z.string().min(2, 'Product name must be at least 2 characters')
+                  }}
+                />
 
-                  <FormSelectField
-                    name='category'
-                    label='Category'
-                    required
-                    options={categoryOptions}
-                    placeholder='Select a category'
-                    validators={{
-                      onBlur: z.string().min(1, 'Please select a category')
-                    }}
-                  />
+                <FormSelectField
+                  name='category'
+                  label='Category'
+                  required
+                  options={categoryOptions}
+                  placeholder='Select a category'
+                  validators={{
+                    onBlur: z.string().min(1, 'Please select a category')
+                  }}
+                />
 
-                  <FormTextField
-                    name='price'
-                    label='Price'
-                    required
-                    type='number'
-                    min={0}
-                    step='0.01'
-                    placeholder='0.00'
-                    validators={{
-                      onBlur: z.number().min(0.01, 'Price must be greater than 0')
-                    }}
-                  />
+                <FormTextField
+                  name='price'
+                  label='Price'
+                  required
+                  type='number'
+                  min={0}
+                  step='0.01'
+                  placeholder='0.00'
+                  validators={{
+                    onBlur: z.number().min(0.01, 'Price must be greater than 0')
+                  }}
+                />
 
-                  <FormTextareaField
-                    name='description'
-                    label='Description'
-                    required
-                    placeholder='Enter product description'
-                    maxLength={500}
-                    rows={4}
-                    validators={{
-                      onBlur: z.string().min(10, 'Description must be at least 10 characters')
-                    }}
-                  />
-                </form.Form>
-              </form.AppForm>
-            </ScrollArea>
+                <FormTextareaField
+                  name='description'
+                  label='Description'
+                  required
+                  placeholder='Enter product description'
+                  maxLength={500}
+                  rows={4}
+                  validators={{
+                    onBlur: z.string().min(10, 'Description must be at least 10 characters')
+                  }}
+                />
+              </form.Form>
+            </form.AppForm>
 
             <SheetFooter className='pt-4'>
               <Button type='button' variant='outline' onClick={() => setOpen(false)}>

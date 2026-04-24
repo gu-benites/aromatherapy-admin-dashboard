@@ -19,7 +19,7 @@ export function InfoButton({
   size = 'icon',
   ...props
 }: InfoButtonProps) {
-  const { setContent, setOpen, open } = useInfobar();
+  const { setContent, setOpen } = useInfobar();
 
   // Set content on mount so the infobar has it ready, but don't force it open
   const contentRef = React.useRef(content);
@@ -31,9 +31,7 @@ export function InfoButton({
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     setContent(content);
-    if (!open) {
-      setOpen(true);
-    }
+    setOpen(true);
     props.onClick?.(e);
   };
 

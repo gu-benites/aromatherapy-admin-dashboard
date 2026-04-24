@@ -26,12 +26,12 @@ export function DataTablePagination<TData>({
   return (
     <div
       className={cn(
-        'flex w-full flex-col-reverse items-center justify-between gap-4 overflow-auto p-1 sm:flex-row sm:gap-8',
+        'flex w-full flex-wrap items-center justify-between gap-2 overflow-auto p-1 sm:gap-8',
         className
       )}
       {...props}
     >
-      <div className='text-muted-foreground flex-1 text-sm whitespace-nowrap'>
+      <div className='text-muted-foreground text-sm whitespace-nowrap'>
         {table.getFilteredSelectedRowModel().rows.length > 0 ? (
           <>
             {table.getFilteredSelectedRowModel().rows.length} of{' '}
@@ -41,8 +41,8 @@ export function DataTablePagination<TData>({
           <>{table.getFilteredRowModel().rows.length} row(s) total.</>
         )}
       </div>
-      <div className='flex flex-col-reverse items-center gap-4 sm:flex-row sm:gap-6 lg:gap-8'>
-        <div className='flex items-center space-x-2'>
+      <div className='flex items-center gap-2 sm:gap-6 lg:gap-8'>
+        <div className='hidden items-center space-x-2 sm:flex'>
           <p className='text-sm font-medium whitespace-nowrap'>Rows per page</p>
           <Select
             value={`${table.getState().pagination.pageSize}`}
@@ -62,10 +62,10 @@ export function DataTablePagination<TData>({
             </SelectContent>
           </Select>
         </div>
-        <div className='flex items-center justify-center text-sm font-medium'>
+        <div className='flex items-center justify-center text-sm font-medium whitespace-nowrap'>
           Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
         </div>
-        <div className='flex items-center space-x-2'>
+        <div className='flex items-center space-x-1'>
           <Button
             aria-label='Go to first page'
             variant='outline'

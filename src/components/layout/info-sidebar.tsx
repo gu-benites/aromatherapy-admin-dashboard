@@ -9,7 +9,6 @@ import {
   InfobarGroup,
   InfobarGroupContent,
   InfobarHeader,
-  InfobarRail,
   InfobarTrigger,
   useInfobar
 } from '@/components/ui/infobar';
@@ -37,12 +36,12 @@ export function InfoSidebar({ ...props }: React.ComponentProps<typeof Infobar>) 
 
   return (
     <Infobar {...props}>
-      <InfobarHeader className='bg-sidebar sticky top-0 z-10 flex flex-row items-start justify-between gap-2 border-b px-3 py-3'>
+      <InfobarHeader className='bg-sidebar sticky top-0 z-10 flex flex-row items-center justify-between gap-2 border-b px-4 py-3'>
         <div className='min-w-0 flex-1'>
           <h2 className='text-lg font-semibold wrap-break-word'>{data.title}</h2>
         </div>
         <div className='shrink-0'>
-          <InfobarTrigger className='-mr-1' />
+          <InfobarTrigger />
         </div>
       </InfobarHeader>
       <InfobarContent>
@@ -93,7 +92,6 @@ export function InfoSidebar({ ...props }: React.ComponentProps<typeof Infobar>) 
           </InfobarGroupContent>
         </InfobarGroup>
       </InfobarContent>
-      <InfobarRail />
     </Infobar>
   );
 }
