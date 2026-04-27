@@ -28,6 +28,10 @@ yarn-error.log*
 .env*
 .env*.local
 
+# migrated Bubble/Supabase archive secrets
+/migracao-bubble-to-supabase/.ssh/
+/migracao-bubble-to-supabase/bubble/env.md
+
 # vercel
 .vercel
 

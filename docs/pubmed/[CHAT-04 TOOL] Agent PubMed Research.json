@@ -1,0 +1,537 @@
+{
+  "name": "[CHAT-04 TOOL] Agent PubMed Research",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "gpt-4.1-nano",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "5eaf1887-d51f-4ce9-9473-8bed9287c3a5",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        1024
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "0OYpyvzyfJg6F7Qn",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body['user-chat_memory_id'] }}_pubmed",
+        "contextWindowLength": 2
+      },
+      "id": "db5547a8-dbaa-4c8a-b809-52a375373940",
+      "name": "Postgres Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        704
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "7jTUYezgbDQQf9D1",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Name: pubmed_advanced_search. Get pubmed scientific studies and papers for essential oils, health problems, health objetive(goal) or chemical compounds.",
+        "method": "POST",
+        "url": "=https://n8n.rotinanatural.com.br/webhook/{{ $json.source }}",
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {
+              "name": "advanced_pubmed_search_query"
+            },
+            {
+              "name": "source",
+              "valueProvider": "fieldValue",
+              "value": "={{ $json.source }}"
+            }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "advanced_pubmed_search_query",
+              "description": "String with filled template",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "6713980f-89c0-4611-945a-84ca6af0c207",
+      "name": "pubmed_studies",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1424,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "name": "get_scientific_name",
+        "description": "Call this tool to pass essential oil english name in order to get scientific name and some chemical compounds.",
+        "workflowId": {
+          "__rl": true,
+          "value": "Cnw0jrdAwTu71pik",
+          "mode": "id"
+        },
+        "responsePropertyName": "single_essential_oil"
+      },
+      "id": "dbec1c03-6650-4252-a7b2-487f7faaf58e",
+      "name": "get_scientific_name",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Name: get_chemical_profile. Call this function when you need detailed information about the chemical composition and chromatography profile of an single essential oil.",
+        "method": "POST",
+        "url": "https://n8n.rotinanatural.com.br/webhook/chemical",
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {
+              "name": "essential_oil_product_name"
+            },
+            {
+              "name": "lot_number",
+              "valueProvider": "modelOptional"
+            },
+            {
+              "name": "essential_oil_product_name_in_english_US"
+            }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "essential_oil_product_name",
+              "description": "Name of the essential oil in the user language",
+              "type": "string"
+            },
+            {
+              "name": "lot_number",
+              "description": "Number of the lot located underneath of single essencial oil bottles.",
+              "type": "string"
+            },
+            {
+              "name": "essential_oil_product_name_in_english_US",
+              "description": "Name of the essential oil in English-USA",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "2b85b7b5-e0d7-43f2-8980-b80a9748a9f1",
+      "name": "get_chemical_profile",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1584,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0a323ec0-2e3f-4003-8e1d-82e61b816044",
+              "name": "body['user-chat_memory_id']",
+              "value": "={{ $('Webhook').item.json.body['user-chat_memory_id'] }}",
+              "type": "string"
+            },
+            {
+              "id": "7c774976-00f9-421c-9d12-06d81194b06c",
+              "name": "body.essential_oil_name_in_english",
+              "value": "={{ $('Webhook').item.json.body.essential_oil_name_in_english || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "147e8c3a-e207-40c4-b768-6cc70984d726",
+              "name": "body.user_desired_research",
+              "value": "={{ $('Webhook').item.json.body.user_desired_research || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "c83ae2a3-16d4-480c-aa41-7f7d8b92c36c",
+              "name": "body.context_from_chat_history",
+              "value": "={{ $('Webhook').item.json.body.context_from_chat_history || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "a5a2db32-16d3-4e39-bf72-55fd7a92558b",
+              "name": "message",
+              "value": "=essential_oil_name_in_english: {{ $('Webhook').item.json.body.essential_oil_name_in_english || \"\" }}\nuser_desired_research: {{ $('Webhook').item.json.body.user_desired_research || \"\" }}\ncontext_from_chat_history: {{ $('Webhook').item.json.body.context_from_chat_history || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "b08ed462-3659-4c20-b13d-f59e59a202bf",
+              "name": "source",
+              "value": "={{ $json.body.source }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c4a12a14-4a82-4c32-b247-6f546f61f5a8",
+      "name": "Edit Fields1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  'research_agent': JSON.stringify($input.all().map(x => x.json))\n}"
+      },
+      "id": "a048d4a3-3ca7-4c15-bb88-d790a7505304",
+      "name": "Stringify",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1472,
+        464
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "819d7cbe-b7b3-4116-8de5-caaea3610279",
+              "name": "message",
+              "value": "=You need to search for studies in order to validate the answer from AromaCHAT with actual research papers to support AromaCHAT answer. Extract from 'Answer from Aromachat' such as name of the essential oils, specific health issues or research topics to build your queries.\n\nAnswer from AromaCHAT:\n###\n{{ $json.body.answer }}\n###",
+              "type": "string"
+            },
+            {
+              "id": "dfa69fdb-1dbf-4297-a31e-251ade768d71",
+              "name": "source",
+              "value": "={{ $json.body.source }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "53254af0-9d98-453e-bbb8-f9667aeec8ae",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "2871ff67-2b77-4d7f-950d-e9b4f844f119",
+      "name": "No Operation, do nothing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        688,
+        464
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "31fc7359-65aa-4f36-8b0d-510b32ee8614",
+      "name": "No Operation, do nothing1",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        432,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "research_agent",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "e57edd8b-5f70-4505-8f3f-8b951f1f82d8",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        560
+      ],
+      "webhookId": "1a2c997c-a436-4699-879a-0da2984cf592"
+    },
+    {
+      "parameters": {
+        "inputText": "=AromaCHAT:\n{{ $json.body.answer }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "no_validation_needed",
+              "description": "This answer from AromaCHAT does not make any medical, health claims, or suggest the use of essential oils in a way that would benefit significantly from scientific validation."
+            },
+            {
+              "category": "validation_needed",
+              "description": "This answer from AromaCHAT makes medical or health claims that would benefit from scientific research or PubMed studies for additional credibility, but scientific validation is not strictly required."
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "Base your decision on whether the text contains health-related recommendations, claims, or suggested uses of essential oils where scientific research could enhance the content's reliability. Don't explain, and only output the json.\n\nPlease classify the text provided by the user into one of the following categories: {categories}, and use the provided formatting instructions below. Don't explain, and only output the json."
+        }
+      },
+      "id": "38e5c29f-ef31-4bff-a3db-a1ee3abe59b9",
+      "name": "Text Classifier",
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "get_studies_for_answer",
+        "options": {}
+      },
+      "id": "6ef4c5aa-b6d6-451a-831a-94d5e87d838e",
+      "name": "from_answer",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        288
+      ],
+      "webhookId": "1a2c997c-a436-4699-879a-0da2984cf592"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "=[RESEARCH AGENT] PubMed Advanced Search Specialist\n\nYour task is to expertly craft queries that find studies on PubMed based on user interests. The goal is to locate studies mentioning specific essential oils in relation to health issues or their chemical compounds. Follow these steps to ensure optimal results:\n\nCore rule:\n1. Do not ever reveal your query on the output.\n\nSteps:\n1. Define the English names for all queries.\n2. If an essential oil is specified, use both the user’s language name and the English name, then utilize the get_scientific_name tool to determine its scientific name.\n3. Use the get_chemical_profile tool to retrieve the oil’s chemical compounds with the highest percentage. Search using both the user’s language and the English name.\n4. Build at least 4 different PubMed advanced queries. Each query should combine multiple items from the same category (e.g., essential oils, health objectives, or chemical compounds) into a single 'parenthesis-wrapped OR statement'. There is no need to create separate queries for each item of the same category.\nImportant: Parentheses are part of the advanced query, not placeholders.\n5. Execute the pubmed_advanced_search for each query.\n6. Deduplicate studies using PMID or DOI.\n7. Prioritize the relevance of the paper title and abstract.\n8. Provide detailed information for each paper, including the PubMed reference, URL, and PDF link (if available) but rename field output to be user friendly.\n\nTemplates for Advanced Queries:\n- ({essential_oil_scientific_name}[Title/Abstract]) AND ({health_objective}[Title/Abstract])\n- ({essential_oil_scientific_name}[Title/Abstract]) AND ({chemical_compound1}[Title/Abstract])\n- ({essential_oil_scientific_name}[Title/Abstract]) AND ({chemical_compound1}[Title/Abstract] OR {chemical_compound2}[Title/Abstract] OR ...)\n- ({health_objective}[Title/Abstract]) AND (({essential_oil_scientific_name}[Title/Abstract]) OR ({chemical_compound}[Title/Abstract]))\n- ({essential_oil_scientific_name}[Title/Abstract]) AND (({health_objective}[Title/Abstract]) OR ({chemical_compound1}[Title/Abstract] OR {chemical_compound2}[Title/Abstract] OR ...))\n- ({health_objective}[Title/Abstract]) AND (({essential_oil_scientific_name1}[Title/Abstract] OR {essential_oil_scientific_name2}[Title/Abstract] OR ...) OR ({chemical_compound1}[Title/Abstract] OR {chemical_compound2}[Title/Abstract] OR ...))\n- ({essential_oil_scientific_name}[Title/Abstract]) AND ({health_objective}[Title/Abstract]) AND ({chemical_compound1}[Title/Abstract] OR {chemical_compound2}[Title/Abstract] OR ...)\n\nCategories (but not limited to): {essential_oil_scientific_name}, {health_objective}, {chemical_compound}.\nMost important: Ensure that items from the same category are grouped into a single, parenthesis-wrapped OR statement to build flexible and comprehensive search queries.",
+          "maxIterations": 5
+        }
+      },
+      "id": "ba103a75-438f-4437-a229-3bf4a6eb9911",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        1024,
+        464
+      ]
+    }
+  ],
+  "pinData": {
+    "from_answer": [
+      {
+        "json": {
+          "headers": {
+            "connection": "upgrade",
+            "host": "n8n.rotinanatural.com.br",
+            "x-forwarded-proto": "https",
+            "x-forwarded-ssl": "on",
+            "x-real-ip": "164.152.53.171",
+            "x-forwarded-for": "164.152.53.171",
+            "content-length": "2845",
+            "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+            "content-type": "application/json",
+            "user-agent": "axios/1.7.4",
+            "accept-encoding": "gzip, compress, deflate, br"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "source": "ai_agent_answer",
+            "answer": "Para tratar a tosse seca, uma combinação de óleos essenciais pode ser muito eficaz. Aqui estão algumas receitas e protocolos que você pode usar, tanto para aplicação tópica quanto para difusão:\n\n*1. Receita para Alívio Respiratório*\n\n*Ingredientes:*\n- 5 gotas de óleo essencial de *Alecrim*\n- 5 gotas de óleo essencial de *Eucalipto*\n- 5 gotas de óleo essencial de *Melaleuca* (Tea tree)\n- 5 gotas de óleo essencial de *Pinheiro Siberiano*\n- Óleo de coco fracionado (para uso tópico)\n\n*Tamanho do Frasco:*\n- 10 ml\n\n*Tipo de Tampa do Frasco:*\n- Roll-on\n\n*Instruções de Preparo:*\n1. Coloque os óleos essenciais no frasco.\n2. Complete com óleo de coco fracionado.\n3. Feche o frasco e agite bem.\n\n*Protocolo de Aplicação:*\n- Aplique diariamente no peito, pescoço e parte superior das costas, massageando suavemente.\n- Para melhores resultados, aplique na sola dos pés à noite antes de dormir.\n- Use diariamente por 3 a 4 semanas, ajustando conforme necessário com base na melhora dos sintomas.\n\n*2. Receita para Garganta Irritada e Tosse Seca*\n\n*Ingredientes:*\n- 4 gotas de óleo essencial de *Tea tree*\n- 4 gotas de óleo essencial de *Lavanda*\n- 3 gotas de óleo essencial de *Breu Branco*\n- Óleo de coco fracionado para completar o frasco de 10 ml\n\n*Tamanho do Frasco:*\n- 10 ml\n\n*Tipo de Tampa do Frasco:*\n- Roll-on\n\n*Instruções de Preparo:*\n1. Adicione as gotas dos óleos essenciais no frasco.\n2. Complete com óleo de coco fracionado.\n3. Agite suavemente para misturar.\n\n*Protocolo de Aplicação:*\n- Aplique no pescoço e na região das glândulas linfáticas 3 vezes ao dia, durante 3 a 5 dias, ou até que os sintomas melhorem.\n\n*3. Uso de Difusor*\n\nPara complementar o uso tópico, você pode utilizar um difusor com os seguintes óleos essenciais:\n- *Eucalipto*: Ajuda a abrir as vias respiratórias e a aliviar a tosse.\n- *Lavanda*: Tem propriedades calmantes e pode ajudar a reduzir a irritação.\n- *Menta*: Refresca e pode ajudar a aliviar a tosse seca.\n\n*Instruções:*\n- Adicione 5 a 7 gotas de qualquer um dos óleos essenciais mencionados ao difusor com água, seguindo as instruções do aparelho para promover a inalação suave do vapor.\n\n*Considerações Finais*\n\nA tosse seca pode ser resultado de várias causas, como alergias, ar seco, infecções ou irritantes ambientais. Manter-se hidratado e, se possível, umidificar o ar pode ajudar a aliviar os sintomas. Se a tosse persistir ou se houver outros sintomas associados, é importante consultar um profissional de saúde.\n\nUtilizando esses óleos essenciais com responsabilidade e seguindo os protocolos, é possível encontrar alívio para os sintomas de tosse seca e irritativa.",
+            "user-chat_memory_id": "1679763867228x767642464548332400"
+          },
+          "webhookUrl": "https://n8n.rotinanatural.com.br/webhook/get_studies_for_answer",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "pubmed_studies": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_scientific_name": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_chemical_profile": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "from_answer": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Stringify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a7f73cb5-ac79-4f36-868c-469885ad075a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3cfbf474a91116808d7ff70a713f51a2d13d986350dd2c8d1df1c011afc0ba41"
+  },
+  "id": "7XVF6U4dZOSWEMdA",
+  "tags": []
+}

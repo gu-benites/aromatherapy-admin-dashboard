@@ -17,8 +17,11 @@ const sentryOptions: Sentry.NodeOptions | Sentry.EdgeOptions = {
   debug: false
 };
 
+const sentryEnabled =
+  process.env.NEXT_PUBLIC_SENTRY_DISABLED !== 'true' && Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
+
 export async function register() {
-  if (!process.env.NEXT_PUBLIC_SENTRY_DISABLED) {
+  if (sentryEnabled) {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
       // Node.js Sentry configuration
       Sentry.init(sentryOptions);

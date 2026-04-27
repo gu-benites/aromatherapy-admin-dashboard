@@ -8,15 +8,17 @@ FROM node:${NODE_VERSION} AS dependencies
 
 WORKDIR /app
 
-# Install bun to use bun.lock for dependency resolution
-RUN npm install -g bun
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
 # Copy package-related files to leverage Docker cache
-COPY package.json bun.lock* ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies with frozen lockfile for reproducible builds
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun install --no-save --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 
 # ============================================
 # Stage 2: Build the Next.js application
@@ -25,6 +27,11 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
 FROM node:${NODE_VERSION} AS builder
 
 WORKDIR /app
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
@@ -40,7 +47,7 @@ ARG NEXT_PUBLIC_SENTRY_DISABLED=true
 
 ENV BUILD_STANDALONE=true
 
-RUN npm run build
+RUN pnpm run build
 
 # ============================================
 # Stage 3: Production runner

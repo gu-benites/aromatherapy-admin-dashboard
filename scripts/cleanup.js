@@ -632,7 +632,7 @@ class FeatureCleanup {
     } else {
       console.log('\n✨ Cleanup complete!\n');
       console.log('📋 Next steps:');
-      console.log('  1. Run: bun install (or npm install) to sync dependencies');
+      console.log('  1. Run: pnpm install to sync dependencies');
       console.log('  2. Review and test your application');
       console.log('  3. To revert: git restore . (or git checkout .)');
       console.log('  4. Delete scripts/cleanup.js if no longer needed\n');

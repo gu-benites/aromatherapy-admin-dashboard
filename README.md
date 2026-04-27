@@ -168,11 +168,11 @@ Clone the repo:
 git clone https://github.com/Kiranism/next-shadcn-dashboard-starter.git
 ```
 
-- `bun install`
+- `pnpm install`
 - Create a `.env.local` file by copying the example environment file:
   `cp env.example.txt .env.local`
 - Add the required environment variables to the `.env.local` file.
-- `bun run dev`
+- `pnpm run dev`
 
 ##### Environment Configuration Setup
 
@@ -204,20 +204,14 @@ Run `node scripts/cleanup.js --help` for all options. Delete `scripts/cleanup.js
 
 ## Deploy
 
-This project includes production-ready Dockerfiles (`Dockerfile` for Node.js, `Dockerfile.bun` for Bun) using standalone output mode. For all deployment options, see the [Next.js Deployment Documentation](https://nextjs.org/docs/app/getting-started/deploying).
+This project includes a production-ready Node.js Dockerfile using pnpm and standalone output mode. For all deployment options, see the [Next.js Deployment Documentation](https://nextjs.org/docs/app/getting-started/deploying).
 
 ### Docker
 
 **Build the image:**
 
 ```bash
-# Node.js
 docker build \
-  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxxx \
-  -t shadcn-dashboard .
-
-# OR Bun
-docker build -f Dockerfile.bun \
   --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxxx \
   -t shadcn-dashboard .
 ```

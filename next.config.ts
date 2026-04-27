@@ -30,9 +30,13 @@ const baseConfig: NextConfig = {
 };
 
 let configWithPlugins = baseConfig;
+const sentryDisabled = process.env.NEXT_PUBLIC_SENTRY_DISABLED === 'true';
+const sentrySourceMapsEnabled = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.NEXT_PUBLIC_SENTRY_ORG && process.env.NEXT_PUBLIC_SENTRY_PROJECT
+);
 
 // Conditionally enable Sentry configuration
-if (!process.env.NEXT_PUBLIC_SENTRY_DISABLED) {
+if (!sentryDisabled) {
   configWithPlugins = withSentryConfig(configWithPlugins, {
     org: process.env.NEXT_PUBLIC_SENTRY_ORG,
     project: process.env.NEXT_PUBLIC_SENTRY_PROJECT,
@@ -60,7 +64,7 @@ if (!process.env.NEXT_PUBLIC_SENTRY_DISABLED) {
 
     // Disable source map upload when org/project are not configured
     sourcemaps: {
-      disable: !process.env.NEXT_PUBLIC_SENTRY_ORG || !process.env.NEXT_PUBLIC_SENTRY_PROJECT
+      disable: !sentrySourceMapsEnabled
     }
   });
 }

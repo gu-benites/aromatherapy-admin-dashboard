@@ -15,8 +15,8 @@ This file provides essential information for AI coding agents working on this pr
 - **Authentication**: Clerk (with Organizations/Billing support)
 - **Error Tracking**: Sentry
 - **Charts**: Recharts
-- **Containerization**: Docker (Node.js & Bun Dockerfiles)
-- **Package Manager**: Bun (preferred) or npm
+- **Containerization**: Docker (Node.js Dockerfile)
+- **Package Manager**: pnpm
 
 The project follows a feature-based folder structure designed for scalability in SaaS applications, internal tools, and admin panels.
 
@@ -160,7 +160,6 @@ The project follows a feature-based folder structure designed for scalability in
     └── postinstall.js     # Dev server cleanup message (auto-cleans)
 
 Dockerfile                 # Node.js production Dockerfile
-Dockerfile.bun             # Bun production Dockerfile
 .dockerignore              # Docker build exclusions
 ```
 
@@ -170,28 +169,28 @@ Dockerfile.bun             # Bun production Dockerfile
 
 ```bash
 # Install dependencies
-bun install
+pnpm install
 
 # Development server
-bun run dev          # Starts at http://localhost:3000
+pnpm run dev         # Starts at http://localhost:3000
 
 # Build for production
-bun run build
+pnpm run build
 
 # Start production server
-bun run start
+pnpm run start
 
 # Linting
-bun run lint         # Run ESLint
-bun run lint:fix     # Fix ESLint issues and format
-bun run lint:strict  # Zero warnings tolerance
+pnpm run lint        # Run linter
+pnpm run lint:fix    # Fix lint issues and format
+pnpm run lint:strict # Zero warnings tolerance
 
 # Formatting
-bun run format       # Format with Prettier
-bun run format:check # Check formatting
+pnpm run format      # Format files
+pnpm run format:check # Check formatting
 
 # Git hooks
-bun run prepare      # Install Husky hooks
+pnpm run prepare     # Install Husky hooks
 ```
 
 ---
@@ -562,8 +561,7 @@ Ensure these are set in your deployment platform:
 
 Production-ready Dockerfiles are included:
 
-- `Dockerfile` — Node.js-based
-- `Dockerfile.bun` — Bun-based
+- `Dockerfile` — Node.js-based, pnpm-managed
 
 Both use `output: 'standalone'` in `next.config.ts`. Pass `NEXT_PUBLIC_*` vars as `--build-arg` at build time, and runtime secrets via `-e` at run time.
 
