@@ -119,6 +119,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.2.2
         version: 4.2.4
+      '@tanstack/form-core':
+        specifier: ^1.29.1
+        version: 1.29.1
       '@tanstack/react-form':
         specifier: ^1.28.5
         version: 1.29.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
