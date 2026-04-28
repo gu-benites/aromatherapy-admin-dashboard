@@ -6,9 +6,9 @@ import { useAuth } from '@clerk/nextjs';
 import { useState } from 'react';
 import superjson from 'superjson';
 import type { QueryClient } from '@tanstack/react-query';
-import type { AppRouter } from '@/server/api/root';
+import type { AdminAppRouter } from '@repo/api-client/admin';
 
-export const api = createTRPCReact<AppRouter>();
+export const api = createTRPCReact<AdminAppRouter>();
 
 const ADMIN_TRPC_URL = 'https://api.aromachat.app/api/admin/trpc';
 

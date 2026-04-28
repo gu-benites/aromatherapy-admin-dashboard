@@ -14,7 +14,11 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@repo/api-client/admin": ["../turborepo-docker/packages/api-client/src/admin.ts"],
+      "@repo/api-client": ["../turborepo-docker/packages/api-client/src/index.ts"],
+      "@repo/payment-shared": ["../turborepo-docker/packages/payment/shared"],
+      "@repo/*": ["../turborepo-docker/packages/*", "../turborepo-docker/packages/payment/*"]
     },
     "incremental": true,
     "plugins": [
