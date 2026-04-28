@@ -1,5 +1,10 @@
 # AGENTS.md - AI Coding Agent Reference
 
+Clerk User to debug auth issues or any user facing feature/app
+  - Email: gustavo@inovado.com.br
+  - Password: Zy05Wx3%INO
+
+
 This file provides essential information for AI coding agents working on this project. It contains project-specific details, conventions, and guidelines that complement the README.
 
 ---
@@ -63,6 +68,7 @@ The project follows a feature-based folder structure designed for scalability in
 - TanStack Table for data tables
 - TanStack React Query for data fetching and mutations
 - Recharts for analytics/charts
+- tRPC is the primary API boundary for AromaChat admin data
 - Service layer per feature (`api/types.ts` → `api/service.ts` → `api/queries.ts`)
 - Route handlers at `src/app/api/` (for Route Handler or BFF patterns)
 - Mock data in `src/constants/mock-api*.ts` (default, swap via service layer)
@@ -206,20 +212,22 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
 CLERK_SECRET_KEY=sk_...
 
 # Redirect URLs
-NEXT_PUBLIC_CLERK_SIGN_IN_URL="/auth/sign-in"
-NEXT_PUBLIC_CLERK_SIGN_UP_URL="/auth/sign-up"
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/dashboard/overview"
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/dashboard/overview"
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/auth/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/auth/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard/overview
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard/overview
 ```
 
 ### Optional for Error Tracking (Sentry)
 
 ```env
 NEXT_PUBLIC_SENTRY_DSN=https://...@....ingest.sentry.io/...
+SENTRY_ORG=your-org
+SENTRY_PROJECT=your-project
 NEXT_PUBLIC_SENTRY_ORG=your-org
 NEXT_PUBLIC_SENTRY_PROJECT=your-project
 SENTRY_AUTH_TOKEN=sntrys_...
-NEXT_PUBLIC_SENTRY_DISABLED="false"  # Set to "true" to disable in dev
+NEXT_PUBLIC_SENTRY_DISABLED=false  # Set to true to disable in dev
 ```
 
 **Note**: Clerk supports "keyless mode" - the app works without API keys for initial development.
@@ -380,6 +388,29 @@ const hasFeature = has({ feature: 'premium_access' });
 
 ## Data Fetching Patterns
 
+### API Boundary Rule
+
+For AromaChat admin features, the frontend must only talk to the application API. The API is the only layer allowed to talk to Supabase/Postgres, Redis, Sentry server APIs, or any other private service.
+
+Required flow:
+
+```
+React UI / client components
+  -> tRPC/API calls
+  -> server routers/procedures
+  -> server-only services/db/cache helpers
+  -> Supabase/Postgres/Redis/external services
+```
+
+Forbidden in frontend/client code:
+
+- Importing Postgres clients, Supabase service clients, Redis clients, or server-only DB helpers
+- Reading private service credentials
+- Calling Supabase/Postgres/Redis directly from React components
+- Bypassing tRPC/API procedures for admin mutations or protected reads
+
+Public React components should use tRPC React hooks such as `api.oils.list.useQuery(...)` and `api.recipes.create.useMutation(...)`, or feature service functions that call the local API. Server routers must enforce Clerk auth, admin authorization, Zod input validation, and then call the server-side data/cache services.
+
 ### Service Layer Architecture
 
 Each feature has a three-file API layer:
@@ -391,16 +422,17 @@ src/features/<name>/api/
   queries.ts    ← React Query options + query key factories (stable, never changes)
 ```
 
-**`service.ts` is the only file you modify when connecting to a real backend.** Queries and components import from it — they never change.
+**For AromaChat admin data, `service.ts` must not become a direct Supabase/Postgres/Redis client in frontend code.** If a feature uses a service layer, that service calls the local tRPC/API boundary. The API/server layer owns all private service access.
 
 #### Backend Patterns
 
 | Pattern                                            | How to implement                                                                            |
 | -------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Server Actions + ORM** (Prisma/Drizzle/Supabase) | Add `'use server'` at top of `service.ts`, call ORM directly                                |
+| **tRPC/API + server services** (AromaChat default) | Frontend calls tRPC/API; server procedures call Supabase/Postgres/Redis services            |
+| **Server Actions + ORM** (template-only pattern)   | Add `'use server'` at top of `service.ts`, call ORM directly                                |
 | **Route Handlers + ORM**                           | `service.ts` calls `/api/` routes via `apiClient`, route handlers call ORM                  |
 | **BFF** (Next.js proxies to Laravel/Go/etc.)       | `service.ts` calls `/api/` routes via `apiClient`, route handlers proxy to external backend |
-| **Direct external API** (frontend-only)            | `service.ts` calls external URL via `fetch()`                                               |
+| **Direct external API** (template/demo only)       | `service.ts` calls external URL via `fetch()`; do not use for protected AromaChat data      |
 | **Mock** (default)                                 | `service.ts` calls in-memory fake data stores                                               |
 
 Route handlers at `src/app/api/` are ready for patterns 2 and 3. `src/lib/api-client.ts` provides a typed `fetch` wrapper.
@@ -480,6 +512,66 @@ const mutation = useMutation({
 });
 ```
 
+### Request Payload Validation
+
+Use **Zod schemas plus typed form values** as the main request validation and payload-shaping layer. Do not rely on `FormData` for validation. `FormData` is only a raw browser transport/container and is mainly appropriate for native form posts or file uploads.
+
+For editable admin flows, the validation stack is:
+
+1. **TanStack Form** manages form state, touched fields, dynamic rows, dependent fields, submit state, and visible errors.
+2. **Zod** validates and shapes the payload before the mutation runs.
+3. **tRPC input schemas** validate the payload again at the API boundary before any database write.
+4. **Mutation mappers** convert UI form values into the exact API input shape when the UI representation differs from the backend contract.
+
+Keep payload schemas close to the feature that owns the workflow:
+
+```
+src/features/<name>/schemas/
+  create-entity.ts
+  update-entity.ts
+  link-entity.ts
+```
+
+Prefer inferring form types from schemas:
+
+```tsx
+const oilCompoundSchema = z.object({
+  essentialOilId: z.string().uuid(),
+  compoundId: z.string().uuid(),
+  minPercentage: z.number().min(0).max(100).nullable(),
+  maxPercentage: z.number().min(0).max(100).nullable()
+});
+
+type OilCompoundFormValues = z.infer<typeof oilCompoundSchema>;
+
+const form = useAppForm({
+  defaultValues: {
+    essentialOilId: '',
+    compoundId: '',
+    minPercentage: null,
+    maxPercentage: null
+  } satisfies OilCompoundFormValues,
+  validators: {
+    onSubmit: oilCompoundSchema
+  },
+  onSubmit: ({ value }) => {
+    mutation.mutate(value);
+  }
+});
+```
+
+Repeat the validation at the tRPC boundary:
+
+```tsx
+adminProcedure
+  .input(oilCompoundSchema)
+  .mutation(async ({ ctx, input }) => {
+    // Database mutation here.
+  });
+```
+
+If the UI uses strings for numeric inputs, date widgets, tag editors, or dynamic arrays, normalize them before calling `mutation.mutate()` or define the schema with `z.coerce.*` when coercion is intentional. The API should receive a deliberate, typed payload, not raw form state.
+
 ### URL State Management
 
 Use `nuqs` for search params state:
@@ -511,7 +603,7 @@ Sentry is configured for both client and server:
 To disable Sentry in development:
 
 ```env
-NEXT_PUBLIC_SENTRY_DISABLED="true"
+NEXT_PUBLIC_SENTRY_DISABLED=true
 ```
 
 ### Error Boundaries
@@ -542,11 +634,32 @@ Recommended test locations:
 
 ## Deployment
 
-### Vercel (Recommended)
+### AromaChat Live Deployment
 
-1. Connect repository to Vercel
-2. Add environment variables in dashboard
-3. Deploy
+This project is deployed as a Dockerized Next.js standalone app behind the existing Traefik instance on the VPS.
+
+Live URL:
+
+- `https://admin.aromachat.app`
+
+Runtime location on the VPS:
+
+- Compose file: `/opt/aromachat-admin-dashboard/docker-compose.yml`
+- Runtime env file: `/opt/aromachat-admin-dashboard/.env`
+- Docker image: `aromachat-admin-dashboard:latest`
+- Container name: `aromachat-admin-dashboard`
+- External Docker network: `coolify`
+
+Traefik routes are owned by Docker labels on the app container:
+
+- HTTP router: `Host(\`admin.aromachat.app\`)` on entrypoint `http`
+- HTTPS router: `Host(\`admin.aromachat.app\`)` on entrypoint `https`
+- HTTP redirects to HTTPS through `aromachat-admin-redirect`
+- HTTPS uses TLS cert resolver `letsencrypt`
+- Service forwards to container port `3000`
+- `traefik.docker.network` must remain `coolify`
+
+Do not replace this with generic Vercel deployment assumptions unless the user explicitly asks to migrate hosting.
 
 ### Environment Variables for Production
 
@@ -556,20 +669,54 @@ Ensure these are set in your deployment platform:
 - `CLERK_SECRET_KEY`
 - All `NEXT_PUBLIC_*` variables for client-side access
 - `SENTRY_*` variables if using error tracking
+- `DATABASE_URL`
+- `REDIS_URL`
+- `CLERK_ADMIN_USERS`
+- `TRPC_DEV_AUTH_ENABLED=0`
+- `TRPC_ENABLE_TEST_MUTATIONS=0`
+
+Production runtime secrets live in `/opt/aromachat-admin-dashboard/.env`, not in committed files. Public `NEXT_PUBLIC_*` variables that affect the Next.js client bundle must also be passed as Docker build args when the image is built. Clerk path values such as `NEXT_PUBLIC_CLERK_SIGN_IN_URL` must be unquoted; quoted values get baked into auth redirects literally.
 
 ### Docker
 
-Production-ready Dockerfiles are included:
+The production image is built from:
 
 - `Dockerfile` — Node.js-based, pnpm-managed
 
-Both use `output: 'standalone'` in `next.config.ts`. Pass `NEXT_PUBLIC_*` vars as `--build-arg` at build time, and runtime secrets via `-e` at run time.
+The app uses `output: 'standalone'` in `next.config.ts`. Pass `NEXT_PUBLIC_*` vars as `--build-arg` at build time and runtime secrets through the compose env file.
+
+Operational commands:
+
+```bash
+# Build image from repo root.
+sudo docker build \
+  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" \
+  --build-arg NEXT_PUBLIC_CLERK_SIGN_IN_URL="$NEXT_PUBLIC_CLERK_SIGN_IN_URL" \
+  --build-arg NEXT_PUBLIC_CLERK_SIGN_UP_URL="$NEXT_PUBLIC_CLERK_SIGN_UP_URL" \
+  --build-arg NEXT_PUBLIC_SENTRY_DSN="$NEXT_PUBLIC_SENTRY_DSN" \
+  --build-arg NEXT_PUBLIC_SENTRY_ORG="$NEXT_PUBLIC_SENTRY_ORG" \
+  --build-arg NEXT_PUBLIC_SENTRY_PROJECT="$NEXT_PUBLIC_SENTRY_PROJECT" \
+  --build-arg NEXT_PUBLIC_SENTRY_DISABLED="$NEXT_PUBLIC_SENTRY_DISABLED" \
+  -t aromachat-admin-dashboard:latest .
+
+# Start/recreate live container.
+sudo docker compose -f /opt/aromachat-admin-dashboard/docker-compose.yml up -d
+
+# Check status and logs.
+sudo docker compose -f /opt/aromachat-admin-dashboard/docker-compose.yml ps
+sudo docker logs --tail=200 aromachat-admin-dashboard
+```
+
+The app must stay on the `coolify` Docker network so Traefik can route to it and so it can reach the existing Redis container by network alias.
+
+Redis is a server-side cache behind tRPC/API only. Frontend code must never connect to Redis directly.
 
 ### Build Considerations
 
 - Output: `standalone` (optimized for Docker/self-hosting)
 - Images: Configured for `api.slingacademy.com`, `img.clerk.com`, `clerk.com`
-- Sentry source maps uploaded automatically in CI
+- Sentry source map upload requires `SENTRY_AUTH_TOKEN`; keep `SENTRY_ORG`, `SENTRY_PROJECT`, `NEXT_PUBLIC_SENTRY_ORG`, and `NEXT_PUBLIC_SENTRY_PROJECT` aligned with the deployed project
+- Clerk development keys can make the app work but should not be treated as production-ready credentials
 
 ---
 
@@ -749,4 +896,5 @@ See "Theming System" section above or `docs/themes.md`.
 9. **Page headers** - Always use `PageContainer` props (`pageTitle`, `pageDescription`, `pageHeaderAction`) for page headers. Never import `<Heading>` manually in pages — `PageContainer` handles that internally.
 10. **Forms** - Use TanStack Form via `useAppForm` from `@/components/ui/tanstack-form`. Never use `useState` inside `AppField` render props — extract stateful logic into separate components.
 11. **Button loading** - Use `<Button isLoading={isPending}>` for loading states. Uses CSS Grid overlap trick for zero layout shift. When `isLoading` is not passed, button behaves as default shadcn. `SubmitButton` in forms handles this automatically via form `isSubmitting` state.
-12. **Data layer** - Always go through the service layer: `types.ts` → `service.ts` → `queries.ts`. Components import types from `types.ts`, functions from `service.ts`, query options from `queries.ts`. Never import from `@/constants/mock-api*` directly in components.
+12. **API boundary** - Frontend/client code only talks to tRPC/API. Only server routers/procedures and server-only services may talk to Supabase/Postgres, Redis, Sentry server APIs, or other private services. Never import DB/cache clients or private service helpers into React components.
+13. **Data layer** - Always go through the feature API layer: `types.ts` → `service.ts`/tRPC hooks → `queries.ts` where applicable. Components import types from `types.ts`, API callers from the feature API layer or `@/trpc/react`, and query options from `queries.ts`. Never import from `@/constants/mock-api*` directly in components.
